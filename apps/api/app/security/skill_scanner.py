@@ -64,9 +64,10 @@ def scan_skill(
                 description=description, evidence=f"Skill name: {skill_name}",
             ))
 
-    # Scan SKILL.md content
+    # Scan SKILL.md content (limit to 500KB to prevent ReDoS)
+    MAX_CONTENT_SIZE = 512_000
     if skill_md_content:
-        _scan_content(skill_md_content, "SKILL.md", concerns)
+        _scan_content(skill_md_content[:MAX_CONTENT_SIZE], "SKILL.md", concerns)
 
     # Scan code files
     if files:
@@ -74,7 +75,7 @@ def scan_skill(
             path = file_info.get("path", "unknown")
             content = file_info.get("content", "")
             if content:
-                _scan_content(content, path, concerns)
+                _scan_content(content[:MAX_CONTENT_SIZE], path, concerns)
 
     # Calculate risk score
     risk_score = _calculate_risk_score(concerns)

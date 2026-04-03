@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+from app.core.url_validator import validate_external_url
 
 
 class QuietHours(BaseModel):
@@ -49,6 +51,13 @@ class NotificationSettingsUpdate(BaseModel):
     webhook_url: str | None = None
     event_preferences: EventPreferences | None = None
     quiet_hours: QuietHours | None = None
+
+    @field_validator("discord_webhook_url", "webhook_url")
+    @classmethod
+    def validate_urls(cls, v: str | None) -> str | None:
+        if v:
+            return validate_external_url(v)
+        return v
 
 
 class NotificationTestRequest(BaseModel):

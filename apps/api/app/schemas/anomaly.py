@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class AnomalyEventResponse(BaseModel):
@@ -30,7 +30,14 @@ class AnomalySettingsResponse(BaseModel):
 
 class AnomalySettingsUpdateRequest(BaseModel):
     is_enabled: bool | None = None
-    sensitivity: str | None = None
+    sensitivity: str | None = None  # Must be: "low", "medium", or "high"
+
+    @field_validator("sensitivity")
+    @classmethod
+    def validate_sensitivity(cls, v: str | None) -> str | None:
+        if v and v not in ("low", "medium", "high"):
+            raise ValueError("Sensitivity must be 'low', 'medium', or 'high'")
+        return v
     auto_pause_on_critical: bool | None = None
     auto_kill_switch_threshold: int | None = None
     notification_channels: list | None = None

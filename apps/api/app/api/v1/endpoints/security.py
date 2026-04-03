@@ -28,7 +28,7 @@ async def kill_switch(
     event = await activate_kill_switch(
         db,
         user,
-        revoke_api_keys=request.revoke_api_keys,
+        revoke_api_keys=True,
         disconnect_accounts=request.disconnect_accounts,
         reason=request.reason,
         trigger_source="api",

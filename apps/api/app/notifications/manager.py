@@ -78,13 +78,19 @@ class NotificationManager:
             return False
 
         try:
-            now = datetime.now(timezone.utc)
+            from zoneinfo import ZoneInfo
+            tz_name = quiet.get("timezone", "UTC")
+            try:
+                tz = ZoneInfo(tz_name)
+            except (KeyError, Exception):
+                tz = timezone.utc
+
+            now = datetime.now(tz)
             current_hour = now.hour
             start = quiet.get("start_hour", 22)
             end = quiet.get("end_hour", 8)
 
             if start > end:
-                # Wraps midnight: e.g., 22-08
                 return current_hour >= start or current_hour < end
             else:
                 return start <= current_hour < end

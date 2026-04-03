@@ -83,7 +83,7 @@ async def delete_webhook_subscription(
     if not subscription:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Webhook subscription not found")
 
-    await db.delete(subscription)
+    subscription.is_active = False
     await db.flush()
 
     await log_action(

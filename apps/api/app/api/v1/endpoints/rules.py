@@ -72,6 +72,50 @@ async def list_rules(
     return result.scalars().all()
 
 
+# --- Rule Templates (must be before /{rule_id} to avoid route shadowing) ---
+
+@router.get("/templates")
+async def list_rule_templates():
+    """List all available rule templates."""
+    return {"templates": list_templates()}
+
+
+@router.post("/templates/{template_id}/apply", response_model=list[RuleResponse], status_code=status.HTTP_201_CREATED)
+async def apply_rule_template(
+    template_id: str,
+    request_body: TemplateApplyRequest | None = None,
+    user: User = Depends(require_2fa),
+    db: AsyncSession = Depends(get_db),
+):
+    """Apply a rule template, creating all its rules for the current user."""
+    import re
+    if not re.match(r"^[a-z0-9-]+$", template_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid template ID")
+
+    template = get_template(template_id)
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template '{template_id}' not found",
+        )
+
+    overrides = {}
+    if request_body:
+        overrides = request_body.model_dump(exclude_unset=True)
+
+    rules = await apply_template(db, template_id, user.id, overrides)
+
+    await log_action(
+        db, user_id=user.id, action="rule.template.apply",
+        resource_type="rule_template", resource_id=template_id,
+        detail=f"Applied template '{template['name']}', created {len(rules)} rules",
+    )
+
+    return rules
+
+
+# --- Individual Rule CRUD ---
+
 @router.get("/{rule_id}", response_model=RuleResponse)
 async def get_rule(
     rule_id: UUID,
@@ -141,41 +185,3 @@ async def delete_rule(
     )
 
     return {"message": "Rule deleted"}
-
-
-# --- Rule Templates ---
-
-@router.get("/templates")
-async def list_rule_templates():
-    """List all available rule templates."""
-    return {"templates": list_templates()}
-
-
-@router.post("/templates/{template_id}/apply", response_model=list[RuleResponse], status_code=status.HTTP_201_CREATED)
-async def apply_rule_template(
-    template_id: str,
-    request: TemplateApplyRequest | None = None,
-    user: User = Depends(require_2fa),
-    db: AsyncSession = Depends(get_db),
-):
-    """Apply a rule template, creating all its rules for the current user."""
-    template = get_template(template_id)
-    if not template:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Template '{template_id}' not found",
-        )
-
-    overrides = {}
-    if request:
-        overrides = request.model_dump(exclude_unset=True)
-
-    rules = await apply_template(db, template_id, user.id, overrides)
-
-    await log_action(
-        db, user_id=user.id, action="rule.template.apply",
-        resource_type="rule_template", resource_id=template_id,
-        detail=f"Applied template '{template['name']}', created {len(rules)} rules",
-    )
-
-    return rules

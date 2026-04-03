@@ -32,17 +32,21 @@ async def check_for_anomalies(
     now = datetime.now(timezone.utc)
     current_hour = now.hour
 
-    # Increment hourly counter in Redis
+    # Increment hourly counter in Redis (always set expire to prevent orphaned keys)
     hour_key = f"cgw:anomaly:{user_id}:{api_key_id}:{provider}:{action}:h:{current_hour}"
-    current_count = await redis_client.incr(hour_key)
-    if current_count == 1:
-        await redis_client.expire(hour_key, 3600)
+    pipe = redis_client.pipeline()
+    pipe.incr(hour_key)
+    pipe.expire(hour_key, 3600)
+    results = await pipe.execute()
+    current_count = results[0]
 
     # Check burst (>10 actions in 60 seconds)
     burst_key = f"cgw:anomaly:burst:{api_key_id}:{provider}:{action}"
-    burst_count = await redis_client.incr(burst_key)
-    if burst_count == 1:
-        await redis_client.expire(burst_key, 60)
+    pipe = redis_client.pipeline()
+    pipe.incr(burst_key)
+    pipe.expire(burst_key, 60)
+    burst_results = await pipe.execute()
+    burst_count = burst_results[0]
 
     if burst_count > 10:
         return await _create_anomaly(

@@ -119,6 +119,16 @@ async def execute_action(
         except Exception:
             pass  # Anomaly detection should never fail the action
 
+        # Action chains — execute follow-up actions
+        try:
+            from app.rules.chain_executor import execute_chains
+            await execute_chains(
+                db, user.id, body.provider, action_str,
+                request_data=body.params, response_data=result_data,
+            )
+        except Exception:
+            pass  # Chain failures should never fail the original action
+
         return {"status": "success", "data": result_data}
 
     except HTTPException:

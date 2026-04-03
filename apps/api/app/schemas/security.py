@@ -5,9 +5,9 @@ from pydantic import BaseModel
 
 
 class KillSwitchRequest(BaseModel):
-    revoke_api_keys: bool = True
     disconnect_accounts: bool = False
     reason: str | None = None
+    # revoke_api_keys is always True — that's the whole point of the kill switch
 
 
 class KillSwitchResponse(BaseModel):
