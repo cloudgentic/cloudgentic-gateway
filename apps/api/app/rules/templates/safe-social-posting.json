@@ -1,0 +1,41 @@
+{
+  "name": "Safe Social Posting",
+  "description": "Allows social media posting with rate limits and approval requirements for high-risk actions.",
+  "category": "social",
+  "rules": [
+    {
+      "name": "Social Post Rate Limit",
+      "description": "Limit social media posts to 10 per hour to prevent spam.",
+      "rule_type": "rate_limit",
+      "conditions": {
+        "actions": [
+          "social.post",
+          "social.tweet",
+          "social.publish"
+        ]
+      },
+      "config": {
+        "max_requests": 10,
+        "window_seconds": 3600
+      },
+      "priority": 10
+    },
+    {
+      "name": "Require Approval for Mass Actions",
+      "description": "Require manual approval for bulk or deletion operations.",
+      "rule_type": "require_approval",
+      "conditions": {
+        "actions": [
+          "social.bulk_post",
+          "social.delete_post",
+          "social.delete_account"
+        ]
+      },
+      "config": {
+        "notify_via": "email",
+        "timeout_minutes": 60
+      },
+      "priority": 20
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "Read-Only Gmail",
+  "description": "Restricts agents to read-only Gmail operations. Blocks sending, drafting, and deleting emails.",
+  "category": "email",
+  "rules": [
+    {
+      "name": "Gmail Read-Only Whitelist",
+      "description": "Only allow read operations on Gmail (list, read, search).",
+      "rule_type": "action_whitelist",
+      "conditions": {
+        "providers": ["google"]
+      },
+      "config": {
+        "allowed_actions": [
+          "gmail.list",
+          "gmail.read",
+          "gmail.search",
+          "gmail.list_labels",
+          "gmail.get_profile"
+        ]
+      },
+      "priority": 10
+    },
+    {
+      "name": "Block Gmail Send/Delete",
+      "description": "Explicitly block all write operations on Gmail as a safety net.",
+      "rule_type": "action_blacklist",
+      "conditions": {
+        "providers": ["google"]
+      },
+      "config": {
+        "blocked_actions": [
+          "gmail.send",
+          "gmail.draft",
+          "gmail.delete",
+          "gmail.trash",
+          "gmail.modify_labels"
+        ]
+      },
+      "priority": 20
+    }
+  ]
+}

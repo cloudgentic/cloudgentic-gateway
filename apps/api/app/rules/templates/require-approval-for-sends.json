@@ -1,0 +1,55 @@
+{
+  "name": "Require Approval for Sends",
+  "description": "Requires human approval before any outbound communication (emails, calendar invites, file sharing).",
+  "category": "safety",
+  "rules": [
+    {
+      "name": "Approve Email Sends",
+      "description": "Require approval before sending any email.",
+      "rule_type": "require_approval",
+      "conditions": {
+        "actions": [
+          "gmail.send",
+          "gmail.draft"
+        ]
+      },
+      "config": {
+        "notify_via": "email",
+        "timeout_minutes": 60
+      },
+      "priority": 20
+    },
+    {
+      "name": "Approve Calendar Invites",
+      "description": "Require approval before creating calendar events that invite others.",
+      "rule_type": "require_approval",
+      "conditions": {
+        "actions": [
+          "calendar.create",
+          "calendar.update"
+        ]
+      },
+      "config": {
+        "notify_via": "email",
+        "timeout_minutes": 60
+      },
+      "priority": 20
+    },
+    {
+      "name": "Approve File Sharing",
+      "description": "Require approval before sharing or modifying Drive permissions.",
+      "rule_type": "require_approval",
+      "conditions": {
+        "actions": [
+          "drive.share",
+          "drive.update_permissions"
+        ]
+      },
+      "config": {
+        "notify_via": "email",
+        "timeout_minutes": 60
+      },
+      "priority": 20
+    }
+  ]
+}

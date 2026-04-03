@@ -1,0 +1,29 @@
+{
+  "project": {
+    "name": "CloudGentic Gateway",
+    "repo": "github.com/cloudgentic/cloudgentic-gateway",
+    "license": "MIT",
+    "organization": "Forester Information Technology Corp."
+  },
+  "phases": [
+    {
+      "phase": 1, "name": "Core", "weeks": "1-2", "status": "NOT_STARTED",
+      "tasks": [
+        { "id": "P1-01", "task": "Scaffold Docker Compose stack", "branch": "feature/p1-scaffold", "status": "TODO" },
+        { "id": "P1-02", "task": "User auth: Argon2id + TOTP 2FA + WebAuthn", "branch": "feature/p1-user-auth", "status": "TODO" },
+        { "id": "P1-03", "task": "Token vault: AES-256-GCM + HKDF", "branch": "feature/p1-token-vault", "status": "TODO" },
+        { "id": "P1-04", "task": "Agent API key CRUD", "branch": "feature/p1-api-keys", "status": "TODO" },
+        { "id": "P1-05", "task": "Google provider: Gmail + Calendar + Drive", "branch": "feature/p1-google-provider", "status": "TODO" },
+        { "id": "P1-06", "task": "Basic rules engine", "branch": "feature/p1-rules-basic", "status": "TODO" },
+        { "id": "P1-07", "task": "Audit log", "branch": "feature/p1-audit-log", "status": "TODO" },
+        { "id": "P1-08", "task": "Dashboard: accounts, keys, audit", "branch": "feature/p1-dashboard", "status": "TODO" }
+      ]
+    },
+    {
+      "phase": 2, "name": "Social + Messaging + Advanced Rules", "weeks": "3-4", "status": "NOT_STARTED"
+    },
+    {
+      "phase": 3, "name": "Plugins + Polish + Launch", "weeks": "5-6", "status": "NOT_STARTED"
+    }
+  ]
+}

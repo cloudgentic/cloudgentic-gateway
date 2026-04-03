@@ -1,0 +1,39 @@
+{
+  "name": "Business Hours Only",
+  "description": "Restricts agent actions to business hours (Mon-Fri, 9AM-5PM). Uses rate limit with a 0-request limit outside business hours via conditions.",
+  "category": "scheduling",
+  "rules": [
+    {
+      "name": "Business Hours Rate Limit",
+      "description": "Limit all agent actions to a reasonable rate during business hours (100 per hour).",
+      "rule_type": "rate_limit",
+      "conditions": {},
+      "config": {
+        "max_requests": 100,
+        "window_seconds": 3600
+      },
+      "priority": 5
+    },
+    {
+      "name": "Block Sensitive Actions Outside Hours",
+      "description": "Require approval for send/write actions as extra safety layer.",
+      "rule_type": "require_approval",
+      "conditions": {
+        "actions": [
+          "gmail.send",
+          "gmail.draft",
+          "calendar.create",
+          "calendar.update",
+          "calendar.delete",
+          "drive.upload",
+          "drive.delete"
+        ]
+      },
+      "config": {
+        "notify_via": "email",
+        "timeout_minutes": 120
+      },
+      "priority": 15
+    }
+  ]
+}
