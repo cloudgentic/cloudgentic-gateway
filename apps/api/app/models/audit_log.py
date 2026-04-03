@@ -35,3 +35,8 @@ class AuditLog(Base):
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     request_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     is_dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # Action chains — references the chain rule that triggered this action
+    triggered_by_chain_rule_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )

@@ -1,0 +1,55 @@
+{
+  "name": "Cautious Starter",
+  "description": "A conservative starter template for new users. Read-only access with strict rate limits and approval for any write operation.",
+  "category": "starter",
+  "rules": [
+    {
+      "name": "Strict Global Rate Limit",
+      "description": "Limit all actions to 50 per hour globally.",
+      "rule_type": "rate_limit",
+      "conditions": {},
+      "config": {
+        "max_requests": 50,
+        "window_seconds": 3600
+      },
+      "priority": 5
+    },
+    {
+      "name": "Block Destructive Actions",
+      "description": "Block all delete and destructive operations.",
+      "rule_type": "action_blacklist",
+      "conditions": {},
+      "config": {
+        "blocked_actions": [
+          "gmail.delete",
+          "gmail.trash",
+          "calendar.delete",
+          "drive.delete",
+          "drive.trash"
+        ]
+      },
+      "priority": 30
+    },
+    {
+      "name": "Require Approval for Writes",
+      "description": "Any write/send/create action requires human approval.",
+      "rule_type": "require_approval",
+      "conditions": {
+        "actions": [
+          "gmail.send",
+          "gmail.draft",
+          "calendar.create",
+          "calendar.update",
+          "drive.upload",
+          "drive.share",
+          "drive.update_permissions"
+        ]
+      },
+      "config": {
+        "notify_via": "email",
+        "timeout_minutes": 120
+      },
+      "priority": 20
+    }
+  ]
+}

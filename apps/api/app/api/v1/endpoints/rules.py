@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,12 +9,18 @@ from app.core.database import get_db
 from app.core.deps import require_2fa
 from app.models.rule import Rule
 from app.models.user import User
+from app.rules.template_manager import list_templates, get_template, apply_template
 from app.schemas.rule import RuleCreateRequest, RuleResponse, RuleUpdateRequest
 from app.services.audit import log_action
 
 router = APIRouter()
 
-VALID_RULE_TYPES = {"rate_limit", "action_whitelist", "action_blacklist", "require_approval"}
+VALID_RULE_TYPES = {"rate_limit", "action_whitelist", "action_blacklist", "require_approval", "chain", "dry_run"}
+
+
+class TemplateApplyRequest(BaseModel):
+    name_prefix: str = ""
+    is_enabled: bool = True
 
 
 @router.post("/", response_model=RuleResponse, status_code=status.HTTP_201_CREATED)
@@ -134,3 +141,41 @@ async def delete_rule(
     )
 
     return {"message": "Rule deleted"}
+
+
+# --- Rule Templates ---
+
+@router.get("/templates")
+async def list_rule_templates():
+    """List all available rule templates."""
+    return {"templates": list_templates()}
+
+
+@router.post("/templates/{template_id}/apply", response_model=list[RuleResponse], status_code=status.HTTP_201_CREATED)
+async def apply_rule_template(
+    template_id: str,
+    request: TemplateApplyRequest | None = None,
+    user: User = Depends(require_2fa),
+    db: AsyncSession = Depends(get_db),
+):
+    """Apply a rule template, creating all its rules for the current user."""
+    template = get_template(template_id)
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Template '{template_id}' not found",
+        )
+
+    overrides = {}
+    if request:
+        overrides = request.model_dump(exclude_unset=True)
+
+    rules = await apply_template(db, template_id, user.id, overrides)
+
+    await log_action(
+        db, user_id=user.id, action="rule.template.apply",
+        resource_type="rule_template", resource_id=template_id,
+        detail=f"Applied template '{template['name']}', created {len(rules)} rules",
+    )
+
+    return rules
