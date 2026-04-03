@@ -73,33 +73,49 @@ def _get_master_key() -> bytes:
     return bytes.fromhex(key_hex)
 
 
-def derive_user_key(user_id: str) -> bytes:
-    """Derive a per-user encryption key using HKDF."""
+def derive_user_key(user_id: str, salt: bytes | None = None) -> bytes:
+    """Derive a per-user encryption key using HKDF.
+
+    Args:
+        user_id: Context for key derivation (user ID or system context string).
+        salt: Random salt for HKDF. If None, uses legacy saltless derivation.
+    """
     master_key = _get_master_key()
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
         length=32,
-        salt=None,
+        salt=salt,
         info=f"cloudgentic-gateway-user-{user_id}".encode(),
     )
     return hkdf.derive(master_key)
 
 
 def encrypt_token(plaintext: str, user_id: str) -> str:
-    """Encrypt a token using AES-256-GCM with per-user key."""
-    key = derive_user_key(user_id)
+    """Encrypt a token using AES-256-GCM with per-user salted HKDF key.
+
+    Output format (v2): v2:{salt_hex}:{nonce_hex}:{ciphertext_hex}
+    """
+    salt = os.urandom(16)
+    key = derive_user_key(user_id, salt=salt)
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
     ciphertext = aesgcm.encrypt(nonce, plaintext.encode(), None)
-    # Format: hex(nonce):hex(ciphertext)
-    return nonce.hex() + ":" + ciphertext.hex()
+    return f"v2:{salt.hex()}:{nonce.hex()}:{ciphertext.hex()}"
 
 
 def decrypt_token(encrypted: str, user_id: str) -> str:
-    """Decrypt a token using AES-256-GCM with per-user key."""
+    """Decrypt a token. Auto-detects v1 (saltless) and v2 (salted) formats."""
     try:
-        key = derive_user_key(user_id)
-        nonce_hex, ct_hex = encrypted.split(":")
+        if encrypted.startswith("v2:"):
+            # v2 format: v2:{salt_hex}:{nonce_hex}:{ciphertext_hex}
+            _, salt_hex, nonce_hex, ct_hex = encrypted.split(":")
+            salt = bytes.fromhex(salt_hex)
+            key = derive_user_key(user_id, salt=salt)
+        else:
+            # v1 legacy format: {nonce_hex}:{ciphertext_hex}
+            nonce_hex, ct_hex = encrypted.split(":")
+            key = derive_user_key(user_id)
+
         nonce = bytes.fromhex(nonce_hex)
         ciphertext = bytes.fromhex(ct_hex)
         aesgcm = AESGCM(key)
