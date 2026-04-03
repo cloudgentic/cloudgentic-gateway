@@ -9,6 +9,7 @@ import {
   LinkIcon,
   KeyIcon,
   ShieldCheckIcon,
+  ShieldExclamationIcon,
   ClipboardDocumentListIcon,
   ArrowLeftOnRectangleIcon,
   Cog6ToothIcon,
@@ -21,6 +22,7 @@ const navigation = [
   { name: "Connected Accounts", href: "/dashboard/accounts", icon: LinkIcon },
   { name: "API Keys", href: "/dashboard/keys", icon: KeyIcon },
   { name: "Rules", href: "/dashboard/rules", icon: ShieldCheckIcon },
+  { name: "Security", href: "/dashboard/security", icon: ShieldExclamationIcon },
   {
     name: "Audit Log",
     href: "/dashboard/audit",

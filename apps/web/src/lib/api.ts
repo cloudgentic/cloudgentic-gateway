@@ -257,6 +257,56 @@ class ApiClient {
     });
   }
 
+  // Security
+  async getKillSwitchStatus() {
+    return this.request<{
+      is_active: boolean;
+      activated_at: string | null;
+      trigger_source: string | null;
+      keys_revoked: number;
+      tokens_revoked: number;
+    }>("/api/v1/security/kill-switch/status");
+  }
+
+  async activateKillSwitch(data: {
+    revoke_api_keys: boolean;
+    disconnect_accounts?: boolean;
+    reason?: string;
+  }) {
+    return this.request("/api/v1/security/kill-switch", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async listAnomalies(params?: { severity?: string; limit?: number }) {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined) query.set(k, String(v));
+      });
+    }
+    return this.request<any[]>(`/api/v1/security/anomalies/?${query}`);
+  }
+
+  async acknowledgeAnomaly(anomalyId: string) {
+    return this.request(`/api/v1/security/anomalies/${anomalyId}/acknowledge`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  }
+
+  async scanSkill(data: {
+    skill_name: string;
+    skill_md_content?: string;
+    files?: { path: string; content: string }[];
+  }) {
+    return this.request<any>("/api/v1/security/scan-skill", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
   // Audit
   async listAuditLogs(params?: {
     action?: string;
