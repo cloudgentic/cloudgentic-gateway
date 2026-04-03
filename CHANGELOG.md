@@ -5,46 +5,64 @@ All notable changes to CloudGentic Gateway will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - 2026-04-03
+## [1.3.0] - 2026-04-03
 
-### Added
-- **FastAPI backend** with async SQLAlchemy, Alembic migrations, PostgreSQL 16
-- **User authentication** with Argon2id password hashing and mandatory TOTP 2FA
-- **Token vault** with AES-256-GCM encryption and salted HKDF per-user key derivation
-- **Agent API keys** with `cgw_` prefix, SHA-256 hashed storage, scoped permissions
-- **Google provider** with full OAuth flow -- Gmail (list, read, send, search), Calendar (list, create, delete), Drive (list, read, download)
-- **15 provider setup wizards** with step-by-step instructions and direct developer console links (Google, Slack, Twitter/X, Facebook, Instagram, TikTok, Stripe, HubSpot, GoHighLevel, Salesforce, Discord, LinkedIn, GitHub, Notion, Shopify)
-- **Provider credentials** stored encrypted in DB (configured via dashboard, not just .env)
-- **Rules engine** with rate limits, action whitelist/blacklist, and require-approval rule types
-- **Append-only audit log** with filterable query endpoint and auto-captured IP addresses
-- **MCP server** (FastMCP) with tools for Gmail, Calendar, and Drive
-- **Celery worker** for background tasks with Redis broker
-- **Next.js 15 dashboard** with dark mode, Framer Motion animations:
-  - Login with TOTP 2FA support
-  - First-run setup wizard
-  - Forgot password / reset password flow
-  - Dashboard overview with stats
-  - Provider Setup page with step-by-step wizards
-  - Connected Accounts (dynamic, shows only configured providers)
-  - API Keys management (create/revoke, one-time key display)
-  - Rules builder (rate limits, whitelists, blacklists, approvals)
-  - Audit log viewer with filters
-  - Settings page (profile, change password, reset 2FA)
-- **CLI management tool** -- reset-password, disable-2fa, create-admin, list-users
-- **Docker Compose stack** -- 5 services (API, Web, Worker, PostgreSQL, Redis)
-- **Production Docker Compose** config (no exposed DB/Redis ports)
+### Added — Phase 6: Community & Polish
+- **Rule Templates** -- 5 bundled presets (read-only Gmail, safe social, business hours, require approval, cautious starter) with gallery page and one-click apply
+- **Multi-Agent Dashboard** -- all API keys shown as agent cards with 24h stats, top actions, last active time
+- **Push Notifications** -- configurable channels (Email, Telegram, Discord, Webhook) with test buttons and quiet hours
+- **Audit Export** -- streaming CSV download with date range and filter parameters
+- **Preflight API** -- agent startup health check endpoint (GET /agents/preflight)
+- **Full dashboard** -- all 12 features now have frontend pages with polished dark-mode UI
+
+## [1.2.0] - 2026-04-03
+
+### Added — Phase 5: Events & Observability
+- **Webhook Events** -- subscribe to gateway events, create/list/delete subscriptions, view delivery status
+- **Action Chains** -- post-action workflows ("if Gmail send succeeds, notify Slack") with template variables and depth limits
+- **Provider Health Dashboard** -- token status bars, rate limit usage, overall health indicator per connected account
+
+## [1.1.0] - 2026-04-03
+
+### Added — Phase 4: Security Hardening
+- **Emergency Kill Switch** -- one click to revoke all agent API keys, with optional account disconnect
+- **Dry-Run Mode** -- test agent actions without executing (header or body flag)
+- **Anomaly Detection** -- real-time behavioral analysis with configurable sensitivity (2/3/4 sigma), auto-pause on critical
+- **Skill Security Scanner** -- pattern-based malware analysis for OpenClaw skills with risk scoring
 
 ### Security
-- Password reset tokens never exposed in API responses (server-side log only)
-- OAuth CSRF state validation via Redis
-- TOTP secrets encrypted at rest (AES-256-GCM)
-- API key expiration enforcement + last_used_at tracking
-- Action dispatch via explicit allowlist (no dynamic attribute lookup)
-- Atomic Redis rate limiting (no race conditions)
-- Registration closed by default after first admin (ALLOW_REGISTRATION)
-- JWT revocation on password change (iat + password_changed_at)
-- Pydantic schema validation on all endpoints
-- Password strength validation at API level (min 8 characters)
-- Unique constraint on connected accounts
-- HKDF salt added to encryption key derivation (v2 format, backwards compatible)
-- Security headers on all responses (CSP, HSTS, X-Frame-Options)
+- SSRF prevention on webhook/notification URLs (blocks private IPs, internal hostnames)
+- Kill switch always revokes keys (bypass removed)
+- Route shadowing fixed on rule templates endpoint
+- Audit export uses actual streaming (batched reads, not memory-loaded)
+- Redis INCR+EXPIRE atomicity via pipeline
+- Anomaly sensitivity validated to low/medium/high only
+- Quiet hours respects user timezone
+- Skill scanner content size limited to prevent ReDoS
+- Template path traversal prevention
+
+## [0.1.0] - 2026-04-03
+
+### Added — Phase 1: Core Gateway
+- FastAPI backend with async SQLAlchemy, Alembic migrations, PostgreSQL 16
+- User authentication with Argon2id password hashing and mandatory TOTP 2FA
+- Token vault with AES-256-GCM encryption and salted HKDF per-user key derivation
+- Agent API keys with cgw_ prefix, SHA-256 hashed storage, scoped permissions
+- Google provider with full OAuth flow (Gmail, Calendar, Drive)
+- 15 provider setup wizards with encrypted credential storage
+- Rules engine with rate limits, whitelists, blacklists, approval workflows
+- Append-only audit log with auto-captured IP addresses
+- MCP server (FastMCP) with Gmail, Calendar, Drive tools
+- Celery worker for background tasks
+- Next.js 15 dashboard with dark mode and Framer Motion animations
+- CLI management (reset-password, disable-2fa, create-admin, list-users)
+- Docker Compose stack (5 services)
+- Password reset flow (tokens in Redis, never in API response)
+- Registration closed by default after first admin
+
+### Security (22 issues found in code review, all fixed)
+- OAuth CSRF state validation, TOTP secrets encrypted at rest
+- API key expiration enforcement, JWT revocation on password change
+- Action dispatch via explicit allowlist, atomic rate limiting
+- Pydantic validation on all endpoints, password strength enforcement
+- HKDF salt added (v2 format, backwards compatible)
