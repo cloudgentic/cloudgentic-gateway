@@ -40,13 +40,17 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # Registration
+    allow_registration: bool = False  # After first admin, registration is closed by default
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 
     @field_validator("gateway_master_key")
     @classmethod
     def master_key_must_be_set_in_prod(cls, v: str, info) -> str:
-        # In production, master key must be set
+        if not v and info.data.get("deployment_mode") != "self-hosted":
+            raise ValueError("GATEWAY_MASTER_KEY must be set in production")
         return v
 
     model_config = {

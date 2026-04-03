@@ -24,10 +24,13 @@ class User(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     # WebAuthn
     webauthn_credentials: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=list)
 
+    # Security tracking
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Setup tracking
     setup_complete: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    # Relationships
-    connected_accounts = relationship("ConnectedAccount", back_populates="user", lazy="selectin")
-    api_keys = relationship("ApiKey", back_populates="user", lazy="selectin")
-    rules = relationship("Rule", back_populates="user", lazy="selectin")
+    # Relationships — lazy="noload" to avoid N+1 on every auth check
+    connected_accounts = relationship("ConnectedAccount", back_populates="user", lazy="noload")
+    api_keys = relationship("ApiKey", back_populates="user", lazy="noload")
+    rules = relationship("Rule", back_populates="user", lazy="noload")

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import require_2fa
+from app.core.redis import redis_client
 from app.models.connected_account import ConnectedAccount
 from app.models.user import User
 from app.providers.google.oauth import GoogleOAuth
@@ -44,6 +45,9 @@ async def start_oauth(
             url, state = oauth.get_authorization_url()
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+        # Store state in Redis for CSRF validation (5 min TTL)
+        await redis_client.setex(f"cgw:oauth_state:{state}", 300, str(user.id))
         return OAuthStartResponse(authorization_url=url, state=state)
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown provider: {provider}")
 
@@ -58,6 +62,12 @@ async def oauth_callback(
     db: AsyncSession = Depends(get_db),
 ):
     """Handle OAuth callback from provider."""
+    # Validate CSRF state
+    stored_user_id = await redis_client.get(f"cgw:oauth_state:{state}")
+    if not stored_user_id or stored_user_id != str(user.id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OAuth state")
+    await redis_client.delete(f"cgw:oauth_state:{state}")
+
     if provider == "google":
         oauth = await GoogleOAuth.create(db)
         token_data = await oauth.exchange_code(code)

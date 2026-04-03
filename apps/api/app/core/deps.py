@@ -19,15 +19,20 @@ async def get_current_user(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
     """Extract and validate the current user from JWT token."""
+    import jwt as pyjwt
+
     try:
         payload = decode_token(credentials.credentials)
-        if payload.get("type") != "access":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+    except pyjwt.ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+    except pyjwt.PyJWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     result = await db.execute(select(User).where(User.id == UUID(user_id), User.deleted_at.is_(None)))
     user = result.scalar_one_or_none()
@@ -36,6 +41,12 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account disabled")
+
+    # Check token was issued after last password change (JWT revocation)
+    token_iat = payload.get("iat")
+    if token_iat and user.password_changed_at:
+        if token_iat < user.password_changed_at.timestamp():
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalidated by password change")
 
     return user
 
@@ -55,6 +66,8 @@ async def get_agent_user(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> tuple[User, ApiKey]:
     """Authenticate an agent via API key."""
+    from datetime import datetime, timezone
+
     raw_key = credentials.credentials
     hashed = hash_api_key(raw_key)
 
@@ -65,6 +78,13 @@ async def get_agent_user(
 
     if not api_key:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+
+    # Check expiration
+    if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key has expired")
+
+    # Update last_used_at
+    api_key.last_used_at = datetime.now(timezone.utc)
 
     result = await db.execute(select(User).where(User.id == api_key.user_id, User.deleted_at.is_(None)))
     user = result.scalar_one_or_none()

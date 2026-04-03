@@ -46,7 +46,8 @@ def create_access_token(
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
     )
-    payload = {"sub": subject, "exp": expire, "type": "access"}
+    now = datetime.now(timezone.utc)
+    payload = {"sub": subject, "exp": expire, "iat": int(now.timestamp()), "type": "access"}
     if extra_claims:
         payload.update(extra_claims)
     return jwt.encode(payload, settings.gateway_jwt_secret, algorithm=settings.jwt_algorithm)
@@ -96,13 +97,18 @@ def encrypt_token(plaintext: str, user_id: str) -> str:
 
 def decrypt_token(encrypted: str, user_id: str) -> str:
     """Decrypt a token using AES-256-GCM with per-user key."""
-    key = derive_user_key(user_id)
-    nonce_hex, ct_hex = encrypted.split(":")
-    nonce = bytes.fromhex(nonce_hex)
-    ciphertext = bytes.fromhex(ct_hex)
-    aesgcm = AESGCM(key)
-    plaintext = aesgcm.decrypt(nonce, ciphertext, None)
-    return plaintext.decode()
+    try:
+        key = derive_user_key(user_id)
+        nonce_hex, ct_hex = encrypted.split(":")
+        nonce = bytes.fromhex(nonce_hex)
+        ciphertext = bytes.fromhex(ct_hex)
+        aesgcm = AESGCM(key)
+        plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+        return plaintext.decode()
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Malformed encrypted data: {e}")
+    except Exception as e:
+        raise ValueError(f"Decryption failed: {e}")
 
 
 # --- API Key Utilities ---

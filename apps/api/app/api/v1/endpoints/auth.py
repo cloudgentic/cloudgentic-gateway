@@ -13,6 +13,8 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    encrypt_token,
+    decrypt_token,
     hash_password,
     verify_password,
 )
@@ -47,15 +49,25 @@ async def setup_status(db: AsyncSession = Depends(get_db)):
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Register a new user. First user becomes admin."""
-    # Check if email exists
-    result = await db.execute(select(User).where(User.email == request.email))
-    if result.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    from app.core.config import get_settings
+    settings = get_settings()
 
-    # Check if this is the first user (becomes admin)
+    # Check if this is the first user (becomes admin — always allowed)
     result = await db.execute(select(func.count()).select_from(User))
     user_count = result.scalar()
     is_first_user = user_count == 0
+
+    # After first user, check if registration is open
+    if not is_first_user and not settings.allow_registration:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration is disabled. Contact your admin.",
+        )
+
+    # Check if email exists
+    result = await db.execute(select(User).where(User.email == request.email, User.deleted_at.is_(None)))
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
     user = User(
         email=request.email,
@@ -107,7 +119,8 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
                 detail="TOTP code required",
                 headers={"X-Requires-TOTP": "true"},
             )
-        totp = pyotp.TOTP(user.totp_secret)
+        totp_secret = decrypt_token(user.totp_secret, str(user.id))
+        totp = pyotp.TOTP(totp_secret)
         if not totp.verify(request.totp_code, valid_window=1):
             await log_action(
                 db, user_id=user.id, action="auth.login_failed",
@@ -163,7 +176,7 @@ async def totp_setup(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TOTP already enabled")
 
     secret = pyotp.random_base32()
-    user.totp_secret = secret
+    user.totp_secret = encrypt_token(secret, str(user.id))
     await db.flush()
 
     totp = pyotp.TOTP(secret)
@@ -192,7 +205,8 @@ async def totp_verify(
     if not user.totp_secret:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Run TOTP setup first")
 
-    totp = pyotp.TOTP(user.totp_secret)
+    totp_secret = decrypt_token(user.totp_secret, str(user.id))
+    totp = pyotp.TOTP(totp_secret)
     if not totp.verify(request.code, valid_window=1):
         return TOTPVerifyResponse(success=False, message="Invalid code. Try again.")
 
@@ -218,7 +232,10 @@ async def change_password(
     if not verify_password(request.current_password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
 
+    from datetime import datetime, timezone
+
     user.password_hash = hash_password(request.new_password)
+    user.password_changed_at = datetime.now(timezone.utc)
     await db.flush()
 
     await log_action(
@@ -226,7 +243,7 @@ async def change_password(
         resource_type="user", resource_id=str(user.id),
     )
 
-    return {"message": "Password changed successfully"}
+    return {"message": "Password changed successfully. Please log in again."}
 
 
 @router.post("/forgot-password")
@@ -234,17 +251,29 @@ async def forgot_password(
     request: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Request a password reset. Generates a reset token stored in Redis."""
+    """Request a password reset. Generates a reset token stored in Redis.
+
+    In self-hosted mode, the admin retrieves reset tokens via CLI:
+        docker exec gateway-api python -m app.cli reset-password <email> <new_password>
+
+    When SMTP is configured, this endpoint will send the reset link via email.
+    The token is NEVER returned in the API response to prevent account takeover.
+    """
     import secrets
+    import logging
+
+    logger = logging.getLogger("cloudgentic.auth")
 
     result = await db.execute(
         select(User).where(User.email == request.email, User.deleted_at.is_(None))
     )
     user = result.scalar_one_or_none()
 
-    # Always return success to prevent email enumeration
+    # Always return the same response to prevent email enumeration
+    response_msg = "If an account with that email exists, a password reset has been initiated. Check your email or contact your admin."
+
     if not user:
-        return {"message": "If an account with that email exists, a reset link has been generated."}
+        return {"message": response_msg}
 
     # Generate a reset token, store in Redis with 15-min TTL
     reset_token = secrets.token_urlsafe(48)
@@ -254,19 +283,17 @@ async def forgot_password(
         str(user.id),
     )
 
+    # Log the token server-side only — admin can retrieve from container logs
+    logger.info(f"Password reset token generated for {request.email}: {reset_token}")
+    logger.info(f"Reset URL: /auth/reset-password?token={reset_token}")
+
     await log_action(
         db, user_id=user.id, action="auth.password_reset_requested",
         resource_type="user", resource_id=str(user.id),
     )
 
-    # In self-hosted mode without email, show the token directly
-    # In production with email configured, this would send an email instead
-    return {
-        "message": "If an account with that email exists, a reset link has been generated.",
-        "reset_token": reset_token,
-        "reset_url": f"/auth/reset-password?token={reset_token}",
-        "expires_in_minutes": 15,
-    }
+    # TODO: When SMTP is configured, send email with reset link
+    return {"message": response_msg}
 
 
 @router.post("/reset-password")

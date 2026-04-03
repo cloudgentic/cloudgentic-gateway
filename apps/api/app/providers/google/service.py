@@ -15,18 +15,22 @@ DRIVE_API = "https://www.googleapis.com/drive/v3"
 
 
 class GoogleService:
-    def __init__(self, account: ConnectedAccount, user_id: str):
+    def __init__(self, account: ConnectedAccount, user_id: str, db=None):
         self.account = account
         self.user_id = user_id
+        self.db = db
 
     async def _get_token(self) -> str:
         """Get a valid access token, refreshing if expired."""
         if self.account.token_expires_at and self.account.token_expires_at < datetime.now(timezone.utc):
             refresh_token = get_refresh_token(self.account, self.user_id)
             if refresh_token:
-                oauth = GoogleOAuth()
+                oauth = await GoogleOAuth.create(self.db)
                 new_tokens = await oauth.refresh_access_token(refresh_token)
                 await store_tokens(self.account, new_tokens, self.user_id)
+                # Persist refreshed tokens to DB
+                if self.db:
+                    await self.db.flush()
         return get_access_token(self.account, self.user_id)
 
     async def _request(self, method: str, url: str, **kwargs) -> dict:
@@ -40,11 +44,19 @@ class GoogleService:
             response.raise_for_status()
             return response.json() if response.content else {}
 
+    # Explicit allowlist of valid service.action pairs
+    ALLOWED_ACTIONS = {
+        "gmail.list", "gmail.read", "gmail.send", "gmail.search",
+        "calendar.list", "calendar.create", "calendar.delete",
+        "drive.list", "drive.read", "drive.download",
+    }
+
     async def execute(self, service: str, action: str, params: dict) -> dict:
-        """Route to the appropriate service handler."""
-        handler = getattr(self, f"_{service}_{action}", None)
-        if not handler:
-            raise ValueError(f"Unknown action: {service}.{action}")
+        """Route to the appropriate service handler via explicit allowlist."""
+        action_key = f"{service}.{action}"
+        if action_key not in self.ALLOWED_ACTIONS:
+            raise ValueError(f"Unknown or disallowed action: {action_key}")
+        handler = getattr(self, f"_{service}_{action}")
         return await handler(params)
 
     # --- Gmail ---

@@ -99,20 +99,17 @@ def _matches_conditions(rule: Rule, provider: str, action: str, api_key_id: UUID
 
 
 async def _check_rate_limit(rule: Rule, user_id: UUID, api_key_id: UUID) -> bool:
-    """Check a rate limit rule using Redis."""
+    """Check a rate limit rule using atomic Redis INCR."""
     config = rule.config
     max_requests = config.get("max_requests", 100)
     window_seconds = config.get("window_seconds", 3600)
 
     key = f"cgw:ratelimit:{rule.id}:{api_key_id}"
 
-    count = await redis_client.get(key)
-    if count is not None and int(count) >= max_requests:
-        return False
+    # Atomic: increment first, then check — no race condition
+    count = await redis_client.incr(key)
+    if count == 1:
+        # First request in this window — set the expiry
+        await redis_client.expire(key, window_seconds)
 
-    pipe = redis_client.pipeline()
-    pipe.incr(key)
-    pipe.expire(key, window_seconds)
-    await pipe.execute()
-
-    return True
+    return count <= max_requests
