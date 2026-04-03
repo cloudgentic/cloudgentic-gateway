@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.request_context import get_client_ip
 from app.models.audit_log import AuditLog
 
 
@@ -19,11 +20,14 @@ async def log_action(
     detail: str | None = None,
     request_summary: dict | None = None,
 ) -> AuditLog:
-    """Append an entry to the audit log. INSERT only — never update or delete."""
+    """Append an entry to the audit log. INSERT only — never update or delete.
+
+    IP address is auto-captured from request context if not explicitly provided.
+    """
     entry = AuditLog(
         user_id=user_id,
         api_key_id=api_key_id,
-        ip_address=ip_address,
+        ip_address=ip_address or get_client_ip(),
         action=action,
         resource_type=resource_type,
         resource_id=resource_id,

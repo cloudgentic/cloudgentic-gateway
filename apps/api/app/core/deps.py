@@ -61,6 +61,16 @@ async def require_2fa(user: Annotated[User, Depends(get_current_user)]) -> User:
     return user
 
 
+async def require_admin(user: Annotated[User, Depends(require_2fa)]) -> User:
+    """Require that the user is an admin."""
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return user
+
+
 async def get_agent_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
     db: Annotated[AsyncSession, Depends(get_db)],

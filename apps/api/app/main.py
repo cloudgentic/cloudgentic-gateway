@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.core.request_context import set_client_ip
 
 settings = get_settings()
 
@@ -34,7 +35,17 @@ app.add_middleware(
 )
 
 
-# Security headers middleware
+@app.middleware("http")
+async def request_context_middleware(request: Request, call_next):
+    """Capture client IP into context var for audit logging."""
+    client_ip = None
+    if request.client:
+        client_ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or request.client.host
+    set_client_ip(client_ip)
+    response = await call_next(request)
+    return response
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -43,7 +54,7 @@ async def security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; connect-src 'self' http://localhost:*"
     return response
 
 

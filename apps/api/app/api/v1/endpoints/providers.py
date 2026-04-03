@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import require_2fa
+from app.core.deps import require_2fa, require_admin
 from app.core.security import encrypt_token, decrypt_token
 from app.models.provider_config import ProviderConfig
 from app.models.user import User
@@ -54,13 +54,10 @@ async def list_providers(
 async def configure_provider(
     provider: str,
     request: ProviderConfigSaveRequest,
-    user: User = Depends(require_2fa),
+    user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Save OAuth credentials for a provider."""
-    if not user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
-
+    """Save OAuth credentials for a provider. Admin only."""
     if provider not in PROVIDER_REGISTRY:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown provider: {provider}")
 
@@ -116,13 +113,10 @@ async def configure_provider(
 @router.delete("/{provider}/configure")
 async def remove_provider_config(
     provider: str,
-    user: User = Depends(require_2fa),
+    user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove OAuth credentials for a provider."""
-    if not user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
-
+    """Remove OAuth credentials for a provider. Admin only."""
     result = await db.execute(
         select(ProviderConfig).where(ProviderConfig.provider == provider)
     )
