@@ -79,10 +79,34 @@ export default function AuditPage() {
             Complete history of all actions performed through the gateway
           </p>
         </div>
-        <button onClick={loadLogs} className="btn-secondary">
-          <ArrowPathIcon className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                const blob = await api.exportAuditLogs({
+                  status: filter.status || undefined,
+                  provider: filter.provider || undefined,
+                  limit: 10000,
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `audit_export_${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch {
+                toast.error("Export failed");
+              }
+            }}
+            className="btn-secondary"
+          >
+            Export CSV
+          </button>
+          <button onClick={loadLogs} className="btn-secondary">
+            <ArrowPathIcon className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

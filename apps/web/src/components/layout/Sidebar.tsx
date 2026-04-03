@@ -14,6 +14,11 @@ import {
   ArrowLeftOnRectangleIcon,
   Cog6ToothIcon,
   WrenchScrewdriverIcon,
+  BoltIcon,
+  BellIcon,
+  HeartIcon,
+  UsersIcon,
+  RssIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -21,18 +26,14 @@ const navigation = [
   { name: "Provider Setup", href: "/dashboard/providers", icon: Cog6ToothIcon },
   { name: "Connected Accounts", href: "/dashboard/accounts", icon: LinkIcon },
   { name: "API Keys", href: "/dashboard/keys", icon: KeyIcon },
+  { name: "Agents", href: "/dashboard/agents", icon: UsersIcon },
   { name: "Rules", href: "/dashboard/rules", icon: ShieldCheckIcon },
+  { name: "Webhooks", href: "/dashboard/webhooks", icon: RssIcon },
   { name: "Security", href: "/dashboard/security", icon: ShieldExclamationIcon },
-  {
-    name: "Audit Log",
-    href: "/dashboard/audit",
-    icon: ClipboardDocumentListIcon,
-  },
-  {
-    name: "Settings",
-    href: "/dashboard/settings",
-    icon: WrenchScrewdriverIcon,
-  },
+  { name: "Health", href: "/dashboard/health", icon: HeartIcon },
+  { name: "Audit Log", href: "/dashboard/audit", icon: ClipboardDocumentListIcon },
+  { name: "Notifications", href: "/dashboard/notifications", icon: BellIcon },
+  { name: "Settings", href: "/dashboard/settings", icon: WrenchScrewdriverIcon },
 ];
 
 export function Sidebar() {

@@ -323,6 +323,94 @@ class ApiClient {
     }
     return this.request<AuditLog[]>(`/api/v1/audit/?${query}`);
   }
+
+  async exportAuditLogs(params?: {
+    start_date?: string;
+    end_date?: string;
+    action?: string;
+    provider?: string;
+    status?: string;
+    limit?: number;
+  }) {
+    const query = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined) query.set(k, String(v));
+      });
+    }
+    const token = this.getToken();
+    const res = await fetch(
+      `${this.baseUrl}/api/v1/audit/export?${query}`,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+    );
+    return res.blob();
+  }
+
+  // Webhooks
+  async listWebhooks() {
+    return this.request<any[]>("/api/v1/webhooks/");
+  }
+
+  async createWebhook(data: {
+    event_type: string;
+    callback_url: string;
+    connected_account_id?: string;
+    filter_config?: Record<string, unknown>;
+  }) {
+    return this.request<any>("/api/v1/webhooks/subscribe", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteWebhook(id: string) {
+    return this.request(`/api/v1/webhooks/${id}`, { method: "DELETE" });
+  }
+
+  async listWebhookEvents(id: string) {
+    return this.request<any[]>(`/api/v1/webhooks/${id}/events`);
+  }
+
+  // Notifications
+  async getNotificationSettings() {
+    return this.request<any>("/api/v1/notifications/settings");
+  }
+
+  async updateNotificationSettings(data: Record<string, unknown>) {
+    return this.request<any>("/api/v1/notifications/settings", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async testNotification(channel: string, message?: string) {
+    return this.request<any>(`/api/v1/notifications/test/${channel}`, {
+      method: "POST",
+      body: JSON.stringify({ message: message || "Test notification from CloudGentic Gateway" }),
+    });
+  }
+
+  // Rule Templates
+  async listRuleTemplates() {
+    return this.request<{ templates: any[] }>("/api/v1/rules/templates");
+  }
+
+  async applyRuleTemplate(templateId: string) {
+    return this.request<any[]>(`/api/v1/rules/templates/${templateId}/apply`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+  }
+
+  // Agents
+  async getAgentsOverview() {
+    return this.request<{ agents: any[] }>("/api/v1/agents/overview");
+  }
+
+  // Provider Health
+  async getProviderHealth() {
+    return this.request<any>("/api/v1/health/providers");
+  }
 }
 
 export class ApiError extends Error {

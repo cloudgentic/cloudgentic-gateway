@@ -153,10 +153,15 @@ export default function RulesPage() {
             Control what your AI agents can and cannot do
           </p>
         </div>
-        <button onClick={() => setShowCreate(true)} className="btn-primary">
-          <PlusIcon className="mr-2 h-4 w-4" />
-          Create Rule
-        </button>
+        <div className="flex gap-2">
+          <a href="/dashboard/rules/templates" className="btn-secondary">
+            Browse Templates
+          </a>
+          <button onClick={() => setShowCreate(true)} className="btn-primary">
+            <PlusIcon className="mr-2 h-4 w-4" />
+            Create Rule
+          </button>
+        </div>
       </div>
 
       {/* Rule Type Cards */}
