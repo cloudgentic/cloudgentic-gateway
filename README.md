@@ -5,20 +5,21 @@
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://python.org)
 [![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?logo=next.js)](https://nextjs.org)
 
-**Open-source AI agent account gateway** — a secure, rules-enforced bridge between AI agents and external user accounts.
+**Open-source AI agent account gateway** -- a secure, rules-enforced bridge between AI agents and external user accounts.
 
-CloudGentic Gateway enables any AI agent to perform actions on a user's connected accounts (Google, social media, email, messaging) while respecting user-defined permissions, rate limits, and content policies.
+CloudGentic Gateway enables any AI agent to perform actions on a user's connected accounts (Gmail, Calendar, Drive, and more) while respecting user-defined permissions, rate limits, and approval workflows.
 
 ---
 
 ## Why CloudGentic Gateway?
 
-- **Centralized Credential Management** — OAuth tokens stored in an AES-256-GCM encrypted vault with per-user key derivation
-- **Rules Engine** — Rate limits, action whitelists, time windows, content filters, and approval workflows
-- **Audit Trail** — Every agent action logged to an immutable, append-only audit log
-- **Universal Compatibility** — REST API + MCP server + native plugins for OpenClaw, Agent Zero, and n8n
-- **Self-Hostable** — Single `docker compose up` command, runs on 512 MB RAM
-- **Open Source** — MIT license, free forever
+- **Encrypted Token Vault** -- OAuth tokens stored with AES-256-GCM + per-user HKDF key derivation
+- **Rules Engine** -- Rate limits, action whitelists/blacklists, and approval workflows
+- **Audit Trail** -- Every agent action logged to an immutable, append-only audit log
+- **15 Provider Setup Wizards** -- Step-by-step OAuth setup for Google, Slack, Twitter/X, Salesforce, HubSpot, and more
+- **MCP Server** -- FastMCP tools for Gmail, Calendar, and Drive
+- **Self-Hostable** -- Single `docker compose up` command
+- **Open Source** -- MIT license, free forever
 
 ---
 
@@ -30,7 +31,7 @@ CloudGentic Gateway enables any AI agent to perform actions on a user's connecte
 +--------+--------+   +--------+--------+   +--------+--------+
          |                      |                      |
          +----------------------+----------------------+
-                                |  API Key / MCP
+                                |  API Key (cgw_...) / MCP
                   +-------------v--------------+
                   |   CLOUDGENTIC GATEWAY       |
                   |   - Rules Engine            |
@@ -42,8 +43,8 @@ CloudGentic Gateway enables any AI agent to perform actions on a user's connecte
          +----------------------+----------------------+
          |                      |                      |
 +--------v--------+   +--------v--------+   +---------v-------+
-| Google APIs     |   | Social Media    |   | Email / Chat    |
-| Gmail,Cal,Drive |   | X, FB, Insta    |   | IMAP,Discord,Tg |
+| Google APIs     |   | CRMs            |   | Social / Chat   |
+| Gmail,Cal,Drive |   | HubSpot, SF, GL |   | Slack, X, etc.  |
 +-----------------+   +-----------------+   +-----------------+
 ```
 
@@ -55,14 +56,31 @@ CloudGentic Gateway enables any AI agent to perform actions on a user's connecte
 git clone https://github.com/cloudgentic/cloudgentic-gateway.git
 cd cloudgentic-gateway
 cp .env.example .env
-# Generate encryption keys:
-openssl rand -hex 32  # paste as GATEWAY_MASTER_KEY in .env
-openssl rand -hex 32  # paste as GATEWAY_JWT_SECRET in .env
-docker compose up -d
-open http://localhost:8420
 ```
 
-On first visit, you'll be guided through a setup wizard to create your admin account with mandatory two-factor authentication.
+Edit `.env` and fill in the required values:
+
+```bash
+# Generate encryption keys (paste output into .env):
+openssl rand -hex 32  # GATEWAY_MASTER_KEY
+openssl rand -hex 32  # GATEWAY_JWT_SECRET
+
+# Set database and Redis passwords:
+POSTGRES_PASSWORD=your_secure_password
+REDIS_PASSWORD=your_secure_password
+```
+
+Then start everything:
+
+```bash
+docker compose up -d
+```
+
+Open **http://localhost:3000** -- you'll be guided through a setup wizard to create your admin account with mandatory two-factor authentication.
+
+- **Dashboard:** http://localhost:3000
+- **API Docs:** http://localhost:8421/docs
+- **API Health:** http://localhost:8421/api/v1/health
 
 ---
 
@@ -76,77 +94,130 @@ On first visit, you'll be guided through a setup wizard to create your admin acc
 | Cache | Redis 7 |
 | Task Queue | Celery 5 |
 | MCP Server | FastMCP (Python) |
-| Encryption | AES-256-GCM + HKDF key derivation |
-| Auth | Argon2id + TOTP + WebAuthn |
+| Encryption | AES-256-GCM + salted HKDF key derivation |
+| Password Hashing | Argon2id |
+| 2FA | TOTP (Google Authenticator, Authy, etc.) |
 | Containers | Docker + Docker Compose |
 
 ---
 
-## Supported Providers (v1)
+## Providers
 
-| Provider | Actions |
-|----------|--------|
-| **Gmail** | List, Read, Send, Draft |
-| **Google Calendar** | List, Create, Update |
-| **Google Drive** | List, Read, Upload |
-| **X / Twitter** | Post, Read Timeline, DMs |
-| **Facebook** | Post, Read Feed |
-| **Instagram** | Post, Read Media |
-| **Discord** | Send, Read |
-| **Telegram** | Send, Read |
-| **Slack** | Send, Read |
-| **Email (IMAP/SMTP)** | List, Read, Send, Search |
+### Fully implemented (v0.1.0)
+
+| Provider | Services |
+|----------|----------|
+| **Google** | Gmail (list, read, send, search), Calendar (list, create, delete), Drive (list, read, download) |
+
+### OAuth setup wizards available (connect flow ready, service proxy coming soon)
+
+Slack, Twitter/X, Facebook, Instagram, TikTok, Stripe, HubSpot, GoHighLevel, Salesforce, Discord, LinkedIn, GitHub, Notion, Shopify
+
+Each provider has a **step-by-step setup wizard** in the dashboard with direct links to developer consoles and callback URLs pre-filled.
 
 ---
 
 ## Rules Engine
 
-The Rules Engine evaluates every agent action before execution:
+Rules are evaluated **before** token decryption (fail fast):
 
 | Rule Type | Example |
 |-----------|--------|
-| Rate Limit | Max 10 tweets per day |
-| Action Whitelist | Agent can only read Gmail, not send |
-| Time Window | Only allow actions Mon-Fri 9am-5pm |
-| Content Filter | Block tweets containing profanity |
-| Approval Required | Require user approval before sending emails |
-| Recipient Whitelist | Agent can only email approved contacts |
-| Budget Cap | Max 1000 API calls per month |
+| **Rate Limit** | Max 100 requests per hour per API key |
+| **Action Whitelist** | Agent can only read Gmail, not send |
+| **Action Blacklist** | Block specific actions (e.g., gmail.send) |
+| **Require Approval** | Require manual approval before executing |
+
+Rules are configured per-user through the dashboard with a visual builder.
 
 ---
 
 ## Agent Integration
 
-### REST API (Any Agent)
+### REST API
+
 ```bash
-curl -X POST https://your-gateway/api/v1/actions/gmail/send \
+curl -X POST http://localhost:8421/api/v1/agent/execute \
   -H "Authorization: Bearer cgw_your_api_key" \
   -H "Content-Type: application/json" \
-  -d '{"to": "user@example.com", "subject": "Hello", "body": "World"}'
+  -d '{
+    "provider": "google",
+    "service": "gmail",
+    "action": "send",
+    "params": {
+      "to": "user@example.com",
+      "subject": "Hello",
+      "body": "Sent via CloudGentic Gateway"
+    }
+  }'
 ```
 
 ### MCP Server
-Connect your agent to the MCP endpoint — tools are discovered automatically based on connected accounts.
 
-### Native Plugins
-- **OpenClaw:** `clawhub install cloudgentic-gateway`
-- **Agent Zero:** Drop `gateway_tool.py` into `/a0/usr/tools/`
-- **n8n:** `npm install n8n-nodes-cloudgentic-gateway`
+The gateway includes a FastMCP server with tools for Gmail, Calendar, and Drive. Run it alongside the API:
+
+```bash
+docker exec gateway-api fastmcp run app.mcp.server:mcp
+```
+
+Each tool requires an `api_key` parameter (your `cgw_...` key).
 
 ---
 
-## Cloud Version
+## Dashboard
 
-A free cloud-hosted version is available at **[gateway.cloudgentic.ai](https://gateway.cloudgentic.ai)** with 5 connected accounts, 500 actions/day, and 30-day audit log retention. Self-hosted users get unlimited everything.
+The web dashboard (http://localhost:3000) includes:
+
+- **Provider Setup** -- Step-by-step OAuth credential wizards for 15 providers
+- **Connected Accounts** -- Connect/disconnect external accounts
+- **API Keys** -- Create, list, and revoke agent API keys (shown once on creation)
+- **Rules** -- Visual rule builder for rate limits, whitelists, blacklists, approvals
+- **Audit Log** -- Filterable history of all agent actions
+- **Settings** -- Profile, password change, 2FA management
+
+---
+
+## Security
+
+- AES-256-GCM encryption with salted HKDF per-user key derivation
+- Argon2id password hashing (time_cost=3, memory_cost=64MB)
+- Mandatory TOTP 2FA on all accounts
+- API keys: SHA-256 hashed, `cgw_` prefixed, shown once
+- Append-only audit logs (INSERT only, no UPDATE/DELETE)
+- JWT revocation on password change
+- CSRF protection on OAuth flows
+- Security headers on all responses (CSP, HSTS, X-Frame-Options)
+- Registration closed by default after first admin
+- Tokens never logged, never in API responses
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+---
+
+## CLI Management
+
+```bash
+# List users
+docker exec gateway-api python -m app.cli list-users
+
+# Reset password
+docker exec gateway-api python -m app.cli reset-password user@email.com "newpassword"
+
+# Disable 2FA (emergency recovery)
+docker exec gateway-api python -m app.cli disable-2fa user@email.com
+
+# Create admin
+docker exec gateway-api python -m app.cli create-admin admin@email.com "password"
+```
 
 ---
 
 ## Documentation
 
-- [Architecture Design](docs/ARCHITECTURE.md)
-- [Security Audit & Hardening](docs/SECURITY-AUDIT.md)
-- [Git Workflow & Branching](docs/GIT-WORKFLOW.md)
-- [API Reference](docs/) *(coming soon)*
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security](docs/SECURITY-AUDIT.md)
+- [Git Workflow](docs/GIT-WORKFLOW.md)
+- [API Reference](http://localhost:8421/docs) (auto-generated OpenAPI)
 
 ---
 
@@ -154,14 +225,12 @@ A free cloud-hosted version is available at **[gateway.cloudgentic.ai](https://g
 
 We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md).
 
-## Security
-
-If you discover a vulnerability, please report it responsibly via [SECURITY.md](SECURITY.md).
+---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License -- see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built by [CloudGentic AI](https://cloudgentic.ai)** — A product of Forester Information Technology Corp.
+**Built by [CloudGentic AI](https://cloudgentic.ai)** -- A product of Forester Information Technology Corp.
