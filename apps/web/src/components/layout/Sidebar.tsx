@@ -82,7 +82,10 @@ export function Sidebar() {
 
       {/* User */}
       <div className="border-t border-slate-700 p-4">
-        <div className="flex items-center gap-3">
+        <Link
+          href="/dashboard/settings"
+          className="group mb-3 flex items-center gap-3 rounded-lg px-2 py-2 transition-all hover:bg-slate-800"
+        >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600/20 text-brand-400">
             <span className="text-sm font-medium">
               {user?.email?.charAt(0).toUpperCase()}
@@ -94,14 +97,15 @@ export function Sidebar() {
             </p>
             <p className="truncate text-xs text-slate-500">{user?.email}</p>
           </div>
-          <button
-            onClick={logout}
-            className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300"
-            title="Logout"
-          >
-            <ArrowLeftOnRectangleIcon className="h-5 w-5" />
-          </button>
-        </div>
+          <WrenchScrewdriverIcon className="h-4 w-4 text-slate-600 transition-colors group-hover:text-slate-400" />
+        </Link>
+        <button
+          onClick={logout}
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 transition-colors hover:bg-slate-800 hover:text-red-400"
+        >
+          <ArrowLeftOnRectangleIcon className="h-4 w-4" />
+          Log out
+        </button>
       </div>
     </aside>
   );
