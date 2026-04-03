@@ -26,6 +26,7 @@ class User(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
 
     # Security tracking
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    kill_switch_activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Setup tracking
     setup_complete: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

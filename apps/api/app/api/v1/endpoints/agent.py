@@ -1,5 +1,5 @@
 """Agent-facing API endpoints. Authenticated via API key (cgw_...)."""
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,9 +21,11 @@ async def execute_action(
     body: AgentExecuteRequest,
     db: AsyncSession = Depends(get_db),
     agent: tuple[User, ApiKey] = Depends(get_agent_user),
+    x_gateway_dry_run: str | None = Header(None),
 ):
     """Execute an action on behalf of the user via their connected account."""
     user, api_key = agent
+    is_dry_run = body.dry_run or (x_gateway_dry_run and x_gateway_dry_run.lower() == "true")
 
     # Check API key scope
     if api_key.allowed_providers and body.provider not in api_key.allowed_providers:
@@ -37,7 +39,16 @@ async def execute_action(
     # Evaluate rules BEFORE token decryption
     action_str = f"{body.service}.{body.action}"
     rule_result = await evaluate_rules(db, user.id, api_key.id, body.provider, action_str)
-    if not rule_result.allowed:
+
+    # Check if any dry_run rule matched
+    if rule_result.rule_id:
+        from app.models.rule import Rule
+        rule_check = await db.execute(select(Rule).where(Rule.id == rule_result.rule_id))
+        matched_rule = rule_check.scalar_one_or_none()
+        if matched_rule and matched_rule.rule_type == "dry_run":
+            is_dry_run = True
+
+    if not rule_result.allowed and not is_dry_run:
         await log_action(
             db, user_id=user.id, api_key_id=api_key.id,
             action=action_str, provider=body.provider,
@@ -57,6 +68,35 @@ async def execute_action(
     if not account:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No connected {body.provider} account")
 
+    # Dry-run mode: return what would be executed without calling the external API
+    if is_dry_run:
+        token_status = "valid"
+        if not account.access_token_encrypted:
+            token_status = "missing"
+        elif account.token_expires_at:
+            from datetime import datetime, timezone
+            if account.token_expires_at < datetime.now(timezone.utc):
+                token_status = "expired"
+
+        await log_action(
+            db, user_id=user.id, api_key_id=api_key.id,
+            action=action_str, provider=body.provider,
+            status="dry_run",
+            request_summary={"service": body.service, "action": body.action, "params": body.params},
+        )
+
+        return {
+            "status": "dry_run",
+            "would_execute": {
+                "provider": body.provider,
+                "service": body.service,
+                "action": body.action,
+                "params": body.params,
+            },
+            "rules_evaluated": rule_result.allowed,
+            "token_status": token_status,
+        }
+
     # Execute the action
     try:
         if body.provider == "google":
@@ -71,6 +111,13 @@ async def execute_action(
             resource_type="connected_account", resource_id=str(account.id),
             request_summary={"service": body.service, "action": body.action},
         )
+
+        # Anomaly detection — check after successful action
+        try:
+            from app.security.anomaly_detector import check_for_anomalies
+            await check_for_anomalies(db, user.id, api_key.id, body.provider, action_str)
+        except Exception:
+            pass  # Anomaly detection should never fail the action
 
         return {"status": "success", "data": result_data}
 

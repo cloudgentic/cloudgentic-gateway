@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import Boolean, DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB, INET
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -31,6 +31,7 @@ class AuditLog(Base):
 
     # Details
     provider: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="success")  # success, denied, error
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="success")  # success, denied, error, dry_run
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     request_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    is_dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

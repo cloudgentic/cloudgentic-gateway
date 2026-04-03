@@ -6,3 +6,4 @@ class AgentExecuteRequest(BaseModel):
     service: str
     action: str
     params: dict = {}
+    dry_run: bool = False

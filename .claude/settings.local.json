@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3ODI4OTViNi1iZDViLTQ3YmQtYTFkYS1mMTViZDhjYTM4MzciLCJleHAiOjE3NzUxNjg2ODQsInR5cGUiOiJhY2Nlc3MifQ.K5hnKH6IENQ_ibbFP3c0gKqhTS12MHCcUMuINDypa3o\")",
+      "Bash(curl -s http://localhost:8421/api/v1/providers/ -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:8421/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"admin@cloudgentic.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"SecureP@ss123!\"\"\"\"}')",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3ODI4OTViNi1iZDViLTQ3YmQtYTFkYS1mMTViZDhjYTM4MzciLCJleHAiOjE3NzUxNzEzNTMsInR5cGUiOiJhY2Nlc3MifQ.IpRr2cc_CzCvHa88pAyUEFlkNRfeZCtCqNOny5KaLWY\")",
+      "Bash(curl -s -X POST http://localhost:8421/api/v1/auth/login -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"aldogrillo@gmail.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"test\"\"\"\"}')",
+      "Bash(curl -v -s http://localhost:8421/api/v1/providers/ -H \"Origin: http://localhost:3000\" -H \"Access-Control-Request-Method: GET\" -X OPTIONS)",
+      "Bash(docker restart:*)",
+      "Bash(curl -s -X POST http://localhost:8421/api/v1/auth/forgot-password -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"aldogrillo@gmail.com\"\"\"\"}')",
+      "Bash(curl -s -X POST http://localhost:8421/api/v1/auth/reset-password -H \"Content-Type: application/json\" -d '{\"\"\"\"token\"\"\"\":\"\"\"\"LHQ-VuSpfdK8Y64NH4SAXdC1VBehBPkcwLokpxAmdJnPhmX71KiFcklBxOAbQ3N2\"\"\"\",\"\"\"\"new_password\"\"\"\":\"\"\"\"NewSecureP@ss123!\"\"\"\"}')",
+      "Bash(curl:*)",
+      "Bash(docker compose:*)",
+      "Bash(ls *.md)",
+      "Bash(gh repo:*)",
+      "Bash(gh pr:*)",
+      "Bash(docker cp:*)",
+      "Bash(gh release:*)",
+      "Bash(cd:*)"
+    ]
+  }
+}
