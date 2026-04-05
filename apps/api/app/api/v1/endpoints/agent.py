@@ -27,6 +27,18 @@ async def execute_action(
     user, api_key = agent
     is_dry_run = body.dry_run or (x_gateway_dry_run and x_gateway_dry_run.lower() == "true")
 
+    # Cloud tier enforcement — check daily action limit
+    from app.core.config import get_settings
+    _settings = get_settings()
+    _is_cloud = _settings.deployment_mode == "cloud"
+    if _is_cloud:
+        try:
+            from cloud.middleware.tier_enforcer import get_user_tier, check_daily_actions_limit
+            _tier = await get_user_tier(user.id, getattr(user, "firebase_uid", None))
+            await check_daily_actions_limit(user.id, _tier)
+        except ImportError:
+            _is_cloud = False
+
     # Check API key scope
     if api_key.allowed_providers and body.provider not in api_key.allowed_providers:
         await log_action(
@@ -111,6 +123,14 @@ async def execute_action(
             resource_type="connected_account", resource_id=str(account.id),
             request_summary={"service": body.service, "action": body.action},
         )
+
+        # Cloud tier enforcement — increment daily action counter
+        if _is_cloud:
+            try:
+                from cloud.middleware.tier_enforcer import increment_daily_actions
+                await increment_daily_actions(user.id)
+            except Exception:
+                pass  # counter failure should never fail the action
 
         # Anomaly detection — check after successful action
         try:

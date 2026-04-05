@@ -36,6 +36,17 @@ async def create_rule(
             detail=f"Invalid rule type. Must be one of: {', '.join(VALID_RULE_TYPES)}",
         )
 
+    # Cloud tier enforcement — restrict rule types by tier
+    from app.core.config import get_settings
+    _settings = get_settings()
+    if _settings.deployment_mode == "cloud":
+        try:
+            from cloud.middleware.tier_enforcer import get_user_tier, check_rule_type_allowed
+            tier = await get_user_tier(user.id, getattr(user, "firebase_uid", None))
+            check_rule_type_allowed(tier, request.rule_type)
+        except ImportError:
+            pass
+
     rule = Rule(
         user_id=user.id,
         name=request.name,

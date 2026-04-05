@@ -68,6 +68,17 @@ async def oauth_callback(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OAuth state")
     await redis_client.delete(f"cgw:oauth_state:{state}")
 
+    # Cloud tier enforcement — check account limit before connecting
+    from app.core.config import get_settings
+    _settings = get_settings()
+    if _settings.deployment_mode == "cloud":
+        try:
+            from cloud.middleware.tier_enforcer import get_user_tier, check_connected_accounts_limit
+            tier = await get_user_tier(user.id, getattr(user, "firebase_uid", None))
+            await check_connected_accounts_limit(db, user.id, tier)
+        except ImportError:
+            pass  # cloud module not available — skip enforcement
+
     if provider == "google":
         oauth = await GoogleOAuth.create(db)
         token_data = await oauth.exchange_code(code)

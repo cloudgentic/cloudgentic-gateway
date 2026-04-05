@@ -23,6 +23,17 @@ async def create_api_key(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new agent API key. The raw key is only shown once."""
+    # Cloud tier enforcement — check API key limit
+    from app.core.config import get_settings
+    _settings = get_settings()
+    if _settings.deployment_mode == "cloud":
+        try:
+            from cloud.middleware.tier_enforcer import get_user_tier, check_api_keys_limit
+            tier = await get_user_tier(user.id, getattr(user, "firebase_uid", None))
+            await check_api_keys_limit(db, user.id, tier)
+        except ImportError:
+            pass
+
     raw_key, hashed_key = generate_api_key()
 
     api_key = ApiKey(
