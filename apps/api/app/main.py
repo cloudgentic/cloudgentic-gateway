@@ -13,7 +13,16 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    # Startup — warm up Firebase SDK in cloud mode
+    if settings.deployment_mode == "cloud":
+        try:
+            from cloud.auth.firebase_adapter import _get_firebase_app
+
+            _get_firebase_app()
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).warning(f"Firebase init deferred: {e}")
     yield
     # Shutdown
 

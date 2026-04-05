@@ -40,6 +40,16 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    # Firebase (cloud mode only)
+    firebase_project_id: str = ""
+    firebase_service_account_path: str = ""
+
+    # Platform integration (cloud mode only)
+    platform_api_url: str = "http://api:8001"
+    platform_internal_key: str = ""
+    cloud_admin_email: str = ""
+    tier_cache_ttl: int = 300
+
     # Registration
     allow_registration: bool = False  # After first admin, registration is closed by default
 

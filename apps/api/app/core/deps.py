@@ -71,6 +71,35 @@ async def require_admin(user: Annotated[User, Depends(require_2fa)]) -> User:
     return user
 
 
+def _resolve_auth_dependencies():
+    """Swap auth dependencies based on deployment mode.
+
+    In cloud mode, Firebase JWT verification replaces local JWT auth.
+    Self-hosted mode uses the local functions defined above.
+    """
+    from app.core.config import get_settings
+
+    _settings = get_settings()
+    if _settings.deployment_mode == "cloud":
+        try:
+            from cloud.auth.firebase_adapter import (
+                get_current_user_cloud,
+                require_2fa_cloud,
+                require_admin_cloud,
+            )
+
+            return get_current_user_cloud, require_2fa_cloud, require_admin_cloud
+        except ImportError:
+            raise RuntimeError(
+                "DEPLOYMENT_MODE=cloud but cloud auth module not found. "
+                "Ensure the cloud package is installed."
+            )
+    return get_current_user, require_2fa, require_admin
+
+
+get_current_user, require_2fa, require_admin = _resolve_auth_dependencies()
+
+
 async def get_agent_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
     db: Annotated[AsyncSession, Depends(get_db)],
