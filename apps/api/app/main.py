@@ -77,6 +77,14 @@ app.include_router(api_router)
 
 @app.get("/")
 async def root():
+    if settings.deployment_mode == "cloud":
+        try:
+            from cloud.landing import get_landing_html
+            from fastapi.responses import HTMLResponse
+
+            return HTMLResponse(content=get_landing_html())
+        except ImportError:
+            pass
     return {
         "service": "CloudGentic Gateway",
         "version": "0.1.0",
