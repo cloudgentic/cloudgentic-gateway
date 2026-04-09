@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
+import { ShutdownButton } from "@/components/ShutdownButton";
 import {
   HomeIcon,
   LinkIcon,
@@ -109,6 +110,7 @@ export function Sidebar() {
           <ArrowLeftOnRectangleIcon className="h-4 w-4" />
           Log out
         </button>
+        <ShutdownButton />
       </div>
     </aside>
   );

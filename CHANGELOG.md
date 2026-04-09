@@ -5,6 +5,16 @@ All notable changes to CloudGentic Gateway will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Default dashboard port changed from 3000 to 3050 to avoid conflicts with common localhost services
+
+### Added
+- Shutdown Gateway button in dashboard sidebar (admin only) for clean Docker Compose shutdown
+- `POST /api/v1/system/shutdown` endpoint (self-hosted mode only, requires admin auth, disabled in cloud mode)
+- Confirmation modal before shutdown with restart instructions
+
 ## [1.3.0] - 2026-04-03
 
 ### Added — Phase 6: Community & Polish

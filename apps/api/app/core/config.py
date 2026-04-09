@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8421
     api_url: str = "http://localhost:8421"
-    dashboard_url: str = "http://localhost:3000"
+    dashboard_url: str = "http://localhost:3050"
 
     # Database
     postgres_user: str = "gateway"
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     allow_registration: bool = False  # After first admin, registration is closed by default
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = ["http://localhost:3050"]
 
     @field_validator("gateway_master_key")
     @classmethod

@@ -15,6 +15,8 @@ services:
     volumes:
       - ./apps/api:/app
       - api-packages:/app/.venv
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/project
     depends_on:
       gateway-db:
         condition: service_healthy
@@ -31,11 +33,12 @@ services:
     container_name: gateway-web
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3050:3000"
     env_file:
       - .env
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8421
+      - NEXT_PUBLIC_DEPLOYMENT_MODE=${DEPLOYMENT_MODE:-self-hosted}
     volumes:
       - ./apps/web:/app
       - web-node-modules:/app/node_modules

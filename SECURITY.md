@@ -4,7 +4,7 @@
 
 **Do NOT open a public GitHub issue for security vulnerabilities.**
 
-Email: **security@cloudgentic.ai** (or aldo@foresterit.com until the alias is set up)
+Email: **security@cloudgentic.ai**
 
 Include: description, steps to reproduce, potential impact, and suggested fix.
 
