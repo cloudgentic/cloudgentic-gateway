@@ -407,6 +407,11 @@ class ApiClient {
     return this.request<{ agents: any[] }>("/api/v1/agents/overview");
   }
 
+  // System
+  async shutdownGateway() {
+    return this.request("/api/v1/system/shutdown", { method: "POST" });
+  }
+
   // Provider Health
   async getProviderHealth() {
     return this.request<any>("/api/v1/health/providers");

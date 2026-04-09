@@ -52,9 +52,9 @@ Start everything:
 docker compose up -d
 ```
 
-Open **http://localhost:3000** -- create your admin account and set up 2FA.
+Open **http://localhost:3050** -- create your admin account and set up 2FA.
 
-- **Dashboard:** http://localhost:3000
+- **Dashboard:** http://localhost:3050
 - **API Docs:** http://localhost:8421/docs
 
 ---
@@ -137,7 +137,7 @@ Open **http://localhost:3000** -- create your admin account and set up 2FA.
 | Service | Port | Description |
 |---------|------|-------------|
 | `gateway-api` | 8421 | FastAPI backend |
-| `gateway-web` | 3000 | Next.js 15 dashboard |
+| `gateway-web` | 3050 | Next.js 15 dashboard |
 | `gateway-worker` | -- | Celery background tasks |
 | `gateway-db` | 5432 | PostgreSQL 16 |
 | `gateway-redis` | 6379 | Redis 7 |

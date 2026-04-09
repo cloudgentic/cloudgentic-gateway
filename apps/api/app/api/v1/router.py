@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     auth, users, api_keys, accounts, rules, audit, agent, health,
     providers, security, anomalies, webhooks, notifications, agents,
-    audit_export,
+    audit_export, system,
 )
 
 api_router = APIRouter(prefix="/api/v1")
@@ -23,3 +23,4 @@ api_router.include_router(security.router, prefix="/security", tags=["security"]
 api_router.include_router(anomalies.router, prefix="/security/anomalies", tags=["anomalies"])
 api_router.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(system.router, tags=["system"])

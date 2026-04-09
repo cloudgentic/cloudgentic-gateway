@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
-
 export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
   const [isFirstRun, setIsFirstRun] = useState(false);

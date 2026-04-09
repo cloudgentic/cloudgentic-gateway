@@ -8,7 +8,7 @@ CloudGentic Gateway is a 5-service Docker Compose stack that acts as a secure pr
 
 ```
 gateway-api     (FastAPI, port 8421)    -- REST API + auth + rules engine
-gateway-web     (Next.js 15, port 3000) -- Dashboard UI
+gateway-web     (Next.js 15, port 3050) -- Dashboard UI
 gateway-worker  (Celery)                -- Background tasks (token refresh, cleanup)
 gateway-db      (PostgreSQL 16)         -- Primary data store
 gateway-redis   (Redis 7)              -- Cache, rate limiting, session data, Celery broker
