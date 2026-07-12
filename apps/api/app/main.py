@@ -1,3 +1,4 @@
+import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -57,6 +58,12 @@ async def request_context_middleware(request: Request, call_next):
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    # Per-request nonce so the landing page can run its inline WebGL script
+    # without resorting to 'unsafe-inline'. Set before call_next so the route
+    # handler can read it off request.state and stamp it on the <script> tag.
+    nonce = secrets.token_urlsafe(16)
+    request.state.csp_nonce = nonce
+
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -67,6 +74,7 @@ async def security_headers(request: Request, call_next):
     if request.url.path == "/":
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
+            f"script-src 'self' 'nonce-{nonce}'; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data:; "
@@ -86,14 +94,17 @@ app.include_router(api_router)
 
 
 @app.get("/")
-async def root():
+async def root(request: Request):
     if settings.deployment_mode == "cloud":
         try:
             from cloud.landing import get_landing_html
             from fastapi.responses import HTMLResponse
 
-            return HTMLResponse(content=get_landing_html())
-        except ImportError:
+            nonce = getattr(request.state, "csp_nonce", "")
+            # TypeError guards against an older cloud image whose
+            # get_landing_html() predates the nonce parameter.
+            return HTMLResponse(content=get_landing_html(nonce=nonce))
+        except (ImportError, TypeError):
             pass
     return {
         "service": "CloudGentic Gateway",
