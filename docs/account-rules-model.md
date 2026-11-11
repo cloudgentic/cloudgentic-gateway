@@ -82,3 +82,21 @@ rule taxonomy per account type is the first research task.
 These are major features. Developed well, they are what will really promote
 the gateway — the rules model, the pre-send check, deployment parity, and
 working integrations are the product story.
+
+## Two-factor approval for high-risk actions
+
+- When a rule requires two-factor approval — payments are the headline case
+  (the user tells the AI to pay a bill) — the gateway pauses the action and
+  collects a live second factor from the user before anything goes through.
+  The same applies to other high-priority / high-risk decisions, not just
+  payments.
+- Proposed default (Aldo, 2026-11-11): two-factor for payments is ON by
+  default — mandatory unless the user deliberately turns it off.
+- Cloud version: the gateway can send an SMS code, or work with the gamut of
+  authenticator apps. The cloud version's added advantage for two-factor is
+  exactly the SMS — some people like SMS — plus delivery that is centrally
+  managed and reaches the user wherever they are.
+- Open-source version: open question. Can it handle two-factor itself, and
+  could we build the technology so it does — or would the user have to install
+  extra software to receive/enter codes locally? Unresolved, and another
+  reason users may move to the cloud version.
